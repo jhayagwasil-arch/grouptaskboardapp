@@ -1,39 +1,59 @@
-# TeamBoard – Group Task Board
+# 📋 Group Task Board
 
-A mobile‑friendly, feature-rich group task board web application built with **HTML, CSS, and vanilla JavaScript**.  
-It includes user registration, login, a three-column Kanban board, dark/light mode, and live data persistence using `localStorage`. No backend is required.
+A mobile-friendly, installable **Progressive Web App (PWA)** for managing a shared task board. Built entirely with **HTML, CSS, and Vanilla JavaScript**, it requires no backend and stores all data locally in the browser. 
 
-## Features
+This project was developed to demonstrate modern web app capabilities, including user authentication, drag-and-drop-style Kanban task management, and offline installation as a mobile app.
+
+## 🌟 Features
 
 - **User Authentication**
-  - Register with a username and password.
-  - Login and logout.
-  - Session persistence via `localStorage`.
-- **Modern UI & UX**
-  - 🌙 Dark and Light mode toggle.
-  - Smooth hover and slide-in animations.
-  - Fully responsive design for mobile and desktop.
-- **Profile Section**
-  - Displays logged-in user's name and dynamic avatar initial.
-- **Task Management**
+  - Secure local login and registration.
+  - Session persistence (stays logged in after a page refresh).
+- **Kanban Task Board**
+  - Three columns: *To Do*, *In Progress*, and *Done*.
   - Create, edit, and delete tasks.
-  - Assign tasks to registered users.
-  - Move tasks between columns (To Do, In Progress, Done) using a dropdown.
-- **Live System**
-  - All changes are saved instantly and survive page reloads.
+  - Assign tasks to specific registered users.
+  - Easily move tasks between columns using a dropdown menu.
+- **User Profiles**
+  - Custom profile picture upload (images are automatically resized to save space).
+  - Ability to change your username and email.
+- **Modern UI/UX**
+  - 🌙 Dark and Light mode toggle.
+  - Smooth animations and responsive design for both desktop and mobile.
+  - Instant toast notifications for user actions.
+- **Installable PWA**
+  - Includes a Web App Manifest and Service Worker.
+  - Can be installed directly to an Android or iOS home screen.
+  - Caches files for offline use.
 
-## Technologies Used
+## 📱 How to Install (Add to Home Screen)
 
-- HTML5
-- CSS3 (Flexbox, Grid, CSS Variables for Themes)
-- Vanilla JavaScript (ES6+)
-- FontAwesome (Icons)
-- `localStorage` API
+Because this is a PWA, you do not need to download it from the Google Play Store or Apple App Store. You can install it directly from the browser.
 
-## How to Install and Run
+**Live App Link:** `https://jhayagwasil-arch.github.io/grouptaskboardapp/`
 
-### Option 1 – Run locally
+### On Android (Chrome):
+1. Open the **Live App Link** in Google Chrome.
+2. Tap the **three-dot menu (⋮)** in the top right corner.
+3. Tap **"Add to Home screen"** or **"Install app"**.
+4. Confirm by tapping **"Install"** or **"Add"**.
+5. The app will now appear on your home screen like a native application!
 
-1. **Clone the repository**
+### On iOS / iPhone (Safari):
+1. Open the **Live App Link** in Safari.
+2. Tap the **Share button** (the square with an arrow pointing up).
+3. Scroll down and tap **"Add to Home Screen"**.
+4. Tap **"Add"** in the top right corner.
+
+### On Desktop (Chrome / Edge):
+1. Open the **Live App Link**.
+2. Look at the right side of the address bar and click the **Install icon** (a monitor with a downward arrow, or a plus sign).
+3. Click **"Install"**.
+
+## 🚀 How to Run Locally
+
+If you want to run the source code on your own computer:
+
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/jhayagwasil-arch/group-task-board.git
+   git clone https://github.com/jhayagwasil-arch/grouptaskboardapp.git
