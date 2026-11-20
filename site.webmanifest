@@ -1,6 +1,6 @@
 {
-  "name": "TeamBoard – Group Task Board",
-  "short_name": "TeamBoard",
+    "name": "Group Task Board",
+  "short_name": "Task Board",
   "description": "A mobile-friendly group task board.",
   "start_url": "./index.html",
   "scope": "./",
