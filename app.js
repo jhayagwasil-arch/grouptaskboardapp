@@ -1,8 +1,7 @@
 /* ============================================================
-   TeamBoard – Group Task Board (Local Database Version)
+   TeamBoard – Group Task Board (Toast & Show Password Version)
    ============================================================ */
 
-// --- DATABASE CONFIGURATION ---
 const DB_USERS_KEY = 'teamboard_database_users';
 const DB_ACTIVITY_KEY = 'teamboard_database_activity';
 const TASKS_KEY = 'teamboard_tasks';
@@ -25,33 +24,53 @@ const cancelModal = document.getElementById('cancel-modal');
 const profileName = document.getElementById('profile-name');
 const profileAvatar = document.getElementById('profile-avatar');
 const themeToggles = document.querySelectorAll('.theme-btn');
+const toastContainer = document.getElementById('toast-container');
 
-// ---------- Local Database Helpers ----------
+// ---------- Custom Toast Notification ----------
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  // Add icon based on type
+  const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
+  toast.innerHTML = `${icon} <span>${message}</span>`;
+  
+  toastContainer.appendChild(toast);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.style.animation = 'slideDown 0.3s ease-in forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ---------- Password Visibility Toggle ----------
+document.querySelectorAll('.toggle-password').forEach(icon => {
+  icon.addEventListener('click', function() {
+    const targetId = this.getAttribute('data-target');
+    const input = document.getElementById(targetId);
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      this.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+      input.type = 'password';
+      this.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+  });
+});
+
+// ---------- Database Helpers ----------
 function getFormattedTimestamp() {
   const now = new Date();
   const pad = (num) => String(num).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
-// Get all users from the local database
-function getDatabaseUsers() {
-  return JSON.parse(localStorage.getItem(DB_USERS_KEY) || '[]');
-}
-
-// Save users to the local database
-function saveDatabaseUsers(users) {
-  localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
-}
-
-// Get activity logs
-function getActivityLogs() {
-  return JSON.parse(localStorage.getItem(DB_ACTIVITY_KEY) || '[]');
-}
-
-// Save activity logs
-function saveActivityLogs(logs) {
-  localStorage.setItem(DB_ACTIVITY_KEY, JSON.stringify(logs));
-}
+function getDatabaseUsers() { return JSON.parse(localStorage.getItem(DB_USERS_KEY) || '[]'); }
+function saveDatabaseUsers(users) { localStorage.setItem(DB_USERS_KEY, JSON.stringify(users)); }
+function getActivityLogs() { return JSON.parse(localStorage.getItem(DB_ACTIVITY_KEY) || '[]'); }
+function saveActivityLogs(logs) { localStorage.setItem(DB_ACTIVITY_KEY, JSON.stringify(logs)); }
 
 // ---------- Theme Logic ----------
 function initTheme() {
@@ -103,16 +122,22 @@ registerForm.addEventListener('submit', (e) => {
   const password = document.getElementById('register-password').value;
   const confirm = document.getElementById('register-confirm').value;
 
-  if (password !== confirm) return alert('Passwords do not match.');
+  if (!username || !password || !confirm) {
+    return showToast('Please fill out all fields.', 'error');
+  }
+
+  if (password !== confirm) {
+    return showToast('Passwords do not match.', 'error');
+  }
 
   const users = getDatabaseUsers();
   const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
 
   if (userExists) {
-    return alert('Account already exists in the database!');
+    return showToast('Account already exists in the database!', 'error');
   }
 
-  // Save new user to the database
+  // Save new user
   users.push({
     username: username,
     password: password,
@@ -120,9 +145,13 @@ registerForm.addEventListener('submit', (e) => {
   });
   saveDatabaseUsers(users);
   
-  alert('Account successfully saved to the database! Please log in.');
+  // Show success toast and switch to login smoothly
+  showToast('Account created successfully!', 'success');
   registerForm.reset();
-  showLogin.click();
+  
+  setTimeout(() => {
+    showLogin.click();
+  }, 1000);
 });
 
 // LOGIN
@@ -131,14 +160,17 @@ loginForm.addEventListener('submit', (e) => {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
 
+  if (!username || !password) {
+    return showToast('Please enter email and password.', 'error');
+  }
+
   const users = getDatabaseUsers();
   
-  // Check if user exists and password matches
   const validUser = users.find(u => 
     u.username.toLowerCase() === username.toLowerCase() && u.password === password
   );
 
-  // Log the activity
+  // Log activity
   const logs = getActivityLogs();
   logs.push({
     username: username,
@@ -148,12 +180,17 @@ loginForm.addEventListener('submit', (e) => {
   saveActivityLogs(logs);
 
   if (!validUser) {
-    return alert('Access Denied: Account not found in database or wrong password.');
+    return showToast('Access Denied: Wrong email or password.', 'error');
   }
 
+  // Success
   localStorage.setItem(CURRENT_USER_KEY, username);
   loginForm.reset();
-  showBoard();
+  showToast('Login successful!', 'success');
+  
+  setTimeout(() => {
+    showBoard();
+  }, 500);
 });
 
 logoutBtn.addEventListener('click', () => {
@@ -234,7 +271,7 @@ function openTaskModal(task = null) {
   const taskAssignee = document.getElementById('task-assignee');
   const taskStatus = document.getElementById('task-status');
 
-  // Populate assignee dropdown from the Database
+  // Populate assignee dropdown from Database
   const users = getDatabaseUsers();
   taskAssignee.innerHTML = users.map(u => `<option value="${escapeHTML(u.username)}">${escapeHTML(u.username)}</option>`).join('');
 
@@ -263,7 +300,7 @@ taskForm.addEventListener('submit', (e) => {
   const assignee = document.getElementById('task-assignee').value;
   const status = document.getElementById('task-status').value;
 
-  if (!title) return alert('Title is required.');
+  if (!title) return showToast('Task title is required.', 'error');
 
   if (id) {
     updateTask(id, { title, description, assignee, status });
@@ -275,6 +312,7 @@ taskForm.addEventListener('submit', (e) => {
       createdAt: new Date().toISOString(),
     });
     saveTasks(tasks);
+    showToast('Task added successfully!', 'success');
   }
 
   taskModal.classList.add('hidden');
@@ -294,6 +332,7 @@ function deleteTask(id) {
   const tasks = getTasks().filter((t) => t.id !== id);
   saveTasks(tasks);
   renderBoard();
+  showToast('Task deleted.', 'success');
 }
 
 function escapeHTML(str) {
