@@ -1,5 +1,5 @@
 /* ============================================================
-   TeamBoard – Group Task Board (Profile Edit Version)
+   TeamBoard – Group Task Board (Avatar Image Update)
    ============================================================ */
 
 const DB_USERS_KEY = 'teamboard_database_users';
@@ -26,12 +26,17 @@ const profileAvatar = document.getElementById('profile-avatar');
 const themeToggles = document.querySelectorAll('.theme-btn');
 const toastContainer = document.getElementById('toast-container');
 
-// Profile Edit Ref
+// Profile Edit Refs
 const profileTrigger = document.getElementById('profile-trigger');
 const profileModal = document.getElementById('profile-modal');
 const editProfileInput = document.getElementById('edit-profile-input');
 const saveProfileBtn = document.getElementById('save-profile-btn');
 const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+const editProfileImage = document.getElementById('edit-profile-image');
+const imagePreview = document.getElementById('image-preview');
+const imagePlaceholder = document.getElementById('image-placeholder');
+
+let tempImageBase64 = null; // Holds the image temporarily before saving
 
 // ---------- Toast Notification ----------
 function showToast(message, type = 'success') {
@@ -40,7 +45,6 @@ function showToast(message, type = 'success') {
   const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
   toast.innerHTML = `${icon} <span>${message}</span>`;
   toastContainer.appendChild(toast);
-  
   setTimeout(() => {
     toast.style.animation = 'slideDown 0.3s ease-in forwards';
     setTimeout(() => toast.remove(), 300);
@@ -110,7 +114,6 @@ showRegister.addEventListener('click', (e) => {
   loginForm.classList.add('hidden');
   registerForm.classList.remove('hidden');
 });
-
 showLogin.addEventListener('click', (e) => {
   e.preventDefault();
   registerForm.classList.add('hidden');
@@ -124,39 +127,26 @@ registerForm.addEventListener('submit', (e) => {
   const password = document.getElementById('register-password').value;
   const confirm = document.getElementById('register-confirm').value;
 
-  if (!username || !password || !confirm) {
-    return showToast('Please fill out all fields.', 'error');
-  }
-
-  // Password Requirements
-  if (password.length < 8) {
-    return showToast('Password must be at least 8 characters long.', 'error');
-  }
-
-  if (password !== confirm) {
-    return showToast('Passwords do not match.', 'error');
-  }
+  if (!username || !password || !confirm) return showToast('Please fill out all fields.', 'error');
+  if (password.length < 8) return showToast('Password must be at least 8 characters long.', 'error');
+  if (password !== confirm) return showToast('Passwords do not match.', 'error');
 
   const users = getDatabaseUsers();
-  const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
-
-  if (userExists) {
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return showToast('Account already exists!', 'error');
   }
 
   users.push({
     username: username,
     password: password,
-    dateJoined: getFormattedTimestamp()
+    dateJoined: getFormattedTimestamp(),
+    avatarImage: null // Initialize as null
   });
   saveDatabaseUsers(users);
   
   showToast('Account created successfully!', 'success');
   registerForm.reset();
-  
-  setTimeout(() => {
-    showLogin.click();
-  }, 1000);
+  setTimeout(() => { showLogin.click(); }, 1000);
 });
 
 // LOGIN
@@ -165,9 +155,7 @@ loginForm.addEventListener('submit', (e) => {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
 
-  if (!username || !password) {
-    return showToast('Please enter email and password.', 'error');
-  }
+  if (!username || !password) return showToast('Please enter email and password.', 'error');
 
   const users = getDatabaseUsers();
   const validUser = users.find(u => 
@@ -182,17 +170,12 @@ loginForm.addEventListener('submit', (e) => {
   });
   saveActivityLogs(logs);
 
-  if (!validUser) {
-    return showToast('Access Denied: Wrong email or password.', 'error');
-  }
+  if (!validUser) return showToast('Access Denied: Wrong email or password.', 'error');
 
   localStorage.setItem(CURRENT_USER_KEY, username);
   loginForm.reset();
   showToast('Login successful!', 'success');
-  
-  setTimeout(() => {
-    showBoard();
-  }, 500);
+  setTimeout(() => { showBoard(); }, 500);
 });
 
 logoutBtn.addEventListener('click', () => {
@@ -204,8 +187,58 @@ logoutBtn.addEventListener('click', () => {
 // ---------- Profile Logic ----------
 profileTrigger.addEventListener('click', () => {
   const currentUser = localStorage.getItem(CURRENT_USER_KEY);
+  const user = getDatabaseUsers().find(u => u.username === currentUser);
+  
   editProfileInput.value = currentUser;
+  tempImageBase64 = user.avatarImage || null; // Load current image
+  
+  if (tempImageBase64) {
+    imagePreview.src = tempImageBase64;
+    imagePreview.style.display = 'inline-block';
+    imagePlaceholder.style.display = 'none';
+  } else {
+    imagePreview.style.display = 'none';
+    imagePlaceholder.style.display = 'inline-flex';
+  }
+  
   profileModal.classList.remove('hidden');
+});
+
+// Handle Image Upload & Resize
+editProfileImage.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        // Compress image to 100x100 to save space in localStorage
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 100;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+        } else {
+          if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        tempImageBase64 = canvas.toDataURL('image/jpeg', 0.8); // Save compressed base64
+        
+        imagePreview.src = tempImageBase64;
+        imagePreview.style.display = 'inline-block';
+        imagePlaceholder.style.display = 'none';
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 });
 
 cancelProfileBtn.addEventListener('click', () => {
@@ -217,13 +250,9 @@ saveProfileBtn.addEventListener('click', () => {
   const newUsername = editProfileInput.value.trim();
 
   if (!newUsername) return showToast('Username cannot be empty.', 'error');
-  if (newUsername === oldUsername) {
-    profileModal.classList.add('hidden');
-    return;
-  }
-
+  
   let users = getDatabaseUsers();
-  if (users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
+  if (newUsername !== oldUsername && users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
     return showToast('Username already taken.', 'error');
   }
 
@@ -231,15 +260,14 @@ saveProfileBtn.addEventListener('click', () => {
   const userIndex = users.findIndex(u => u.username === oldUsername);
   if (userIndex !== -1) {
     users[userIndex].username = newUsername;
+    users[userIndex].avatarImage = tempImageBase64; // Save the image
     saveDatabaseUsers(users);
   }
 
   // 2. Update Tasks assigned to this user
   let tasks = getTasks();
   tasks.forEach(task => {
-    if (task.assignee === oldUsername) {
-      task.assignee = newUsername;
-    }
+    if (task.assignee === oldUsername) task.assignee = newUsername;
   });
   saveTasks(tasks);
 
@@ -248,7 +276,7 @@ saveProfileBtn.addEventListener('click', () => {
   
   profileModal.classList.add('hidden');
   showToast('Profile updated successfully!', 'success');
-  showBoard(); // Refresh UI
+  showBoard();
 });
 
 // ---------- Board & Tasks Logic ----------
@@ -267,7 +295,15 @@ function showBoard() {
   boardContainer.classList.remove('hidden');
   welcomeMessage.textContent = `Welcome back, ${user}!`;
   profileName.textContent = user;
-  profileAvatar.textContent = user.charAt(0).toUpperCase();
+  
+  // Render Avatar Image or Letter
+  const userData = getDatabaseUsers().find(u => u.username === user);
+  if (userData && userData.avatarImage) {
+    profileAvatar.innerHTML = `<img src="${userData.avatarImage}" alt="Avatar">`;
+  } else {
+    profileAvatar.innerHTML = user.charAt(0).toUpperCase();
+  }
+
   renderBoard();
 }
 
