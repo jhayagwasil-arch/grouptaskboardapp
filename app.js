@@ -1,5 +1,5 @@
 /* ============================================================
-   TeamBoard – Group Task Board (Toast & Show Password Version)
+   TeamBoard – Group Task Board (Profile Edit Version)
    ============================================================ */
 
 const DB_USERS_KEY = 'teamboard_database_users';
@@ -26,18 +26,21 @@ const profileAvatar = document.getElementById('profile-avatar');
 const themeToggles = document.querySelectorAll('.theme-btn');
 const toastContainer = document.getElementById('toast-container');
 
-// ---------- Custom Toast Notification ----------
+// Profile Edit Ref
+const profileTrigger = document.getElementById('profile-trigger');
+const profileModal = document.getElementById('profile-modal');
+const editProfileInput = document.getElementById('edit-profile-input');
+const saveProfileBtn = document.getElementById('save-profile-btn');
+const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+
+// ---------- Toast Notification ----------
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  
-  // Add icon based on type
   const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
   toast.innerHTML = `${icon} <span>${message}</span>`;
-  
   toastContainer.appendChild(toast);
   
-  // Remove after 3 seconds
   setTimeout(() => {
     toast.style.animation = 'slideDown 0.3s ease-in forwards';
     setTimeout(() => toast.remove(), 300);
@@ -49,7 +52,6 @@ document.querySelectorAll('.toggle-password').forEach(icon => {
   icon.addEventListener('click', function() {
     const targetId = this.getAttribute('data-target');
     const input = document.getElementById(targetId);
-    
     if (input.type === 'password') {
       input.type = 'text';
       this.classList.replace('fa-eye', 'fa-eye-slash');
@@ -126,6 +128,11 @@ registerForm.addEventListener('submit', (e) => {
     return showToast('Please fill out all fields.', 'error');
   }
 
+  // Password Requirements
+  if (password.length < 8) {
+    return showToast('Password must be at least 8 characters long.', 'error');
+  }
+
   if (password !== confirm) {
     return showToast('Passwords do not match.', 'error');
   }
@@ -134,10 +141,9 @@ registerForm.addEventListener('submit', (e) => {
   const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
 
   if (userExists) {
-    return showToast('Account already exists in the database!', 'error');
+    return showToast('Account already exists!', 'error');
   }
 
-  // Save new user
   users.push({
     username: username,
     password: password,
@@ -145,7 +151,6 @@ registerForm.addEventListener('submit', (e) => {
   });
   saveDatabaseUsers(users);
   
-  // Show success toast and switch to login smoothly
   showToast('Account created successfully!', 'success');
   registerForm.reset();
   
@@ -165,12 +170,10 @@ loginForm.addEventListener('submit', (e) => {
   }
 
   const users = getDatabaseUsers();
-  
   const validUser = users.find(u => 
     u.username.toLowerCase() === username.toLowerCase() && u.password === password
   );
 
-  // Log activity
   const logs = getActivityLogs();
   logs.push({
     username: username,
@@ -183,7 +186,6 @@ loginForm.addEventListener('submit', (e) => {
     return showToast('Access Denied: Wrong email or password.', 'error');
   }
 
-  // Success
   localStorage.setItem(CURRENT_USER_KEY, username);
   loginForm.reset();
   showToast('Login successful!', 'success');
@@ -197,6 +199,56 @@ logoutBtn.addEventListener('click', () => {
   localStorage.removeItem(CURRENT_USER_KEY);
   boardContainer.classList.add('hidden');
   authContainer.classList.remove('hidden');
+});
+
+// ---------- Profile Logic ----------
+profileTrigger.addEventListener('click', () => {
+  const currentUser = localStorage.getItem(CURRENT_USER_KEY);
+  editProfileInput.value = currentUser;
+  profileModal.classList.remove('hidden');
+});
+
+cancelProfileBtn.addEventListener('click', () => {
+  profileModal.classList.add('hidden');
+});
+
+saveProfileBtn.addEventListener('click', () => {
+  const oldUsername = localStorage.getItem(CURRENT_USER_KEY);
+  const newUsername = editProfileInput.value.trim();
+
+  if (!newUsername) return showToast('Username cannot be empty.', 'error');
+  if (newUsername === oldUsername) {
+    profileModal.classList.add('hidden');
+    return;
+  }
+
+  let users = getDatabaseUsers();
+  if (users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
+    return showToast('Username already taken.', 'error');
+  }
+
+  // 1. Update User Database
+  const userIndex = users.findIndex(u => u.username === oldUsername);
+  if (userIndex !== -1) {
+    users[userIndex].username = newUsername;
+    saveDatabaseUsers(users);
+  }
+
+  // 2. Update Tasks assigned to this user
+  let tasks = getTasks();
+  tasks.forEach(task => {
+    if (task.assignee === oldUsername) {
+      task.assignee = newUsername;
+    }
+  });
+  saveTasks(tasks);
+
+  // 3. Update Session
+  localStorage.setItem(CURRENT_USER_KEY, newUsername);
+  
+  profileModal.classList.add('hidden');
+  showToast('Profile updated successfully!', 'success');
+  showBoard(); // Refresh UI
 });
 
 // ---------- Board & Tasks Logic ----------
@@ -271,7 +323,6 @@ function openTaskModal(task = null) {
   const taskAssignee = document.getElementById('task-assignee');
   const taskStatus = document.getElementById('task-status');
 
-  // Populate assignee dropdown from Database
   const users = getDatabaseUsers();
   taskAssignee.innerHTML = users.map(u => `<option value="${escapeHTML(u.username)}">${escapeHTML(u.username)}</option>`).join('');
 
