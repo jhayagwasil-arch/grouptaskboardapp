@@ -10,7 +10,6 @@
 </head>
 <body>
 
-  <!-- ================= AUTH SECTION ================= -->
   <div id="auth-container" class="container">
     <div class="auth-header">
       <h1 class="app-title"><i class="fa-solid fa-list-check"></i> TeamBoard</h1>
@@ -21,37 +20,46 @@
     <p class="subtitle">Group Task Board</p>
 
     <!-- Login Form -->
-    <form id="login-form" class="auth-form">
+    <form id="login-form" class="auth-form" novalidate>
       <h2>Login</h2>
-      <input type="text" id="login-username" placeholder="Email" required />
-      <input type="password" id="login-password" placeholder="Password" required />
+      <input type="email" id="login-username" placeholder="Email" required />
+      
+      <div class="password-wrapper">
+        <input type="password" id="login-password" placeholder="Password" required />
+        <i class="fa-regular fa-eye toggle-password" data-target="login-password"></i>
+      </div>
+      
       <button type="submit" class="primary-btn ripple">Login</button>
-      <p class="switch-link">
-        Don't have an account? <a href="#" id="show-register">Register</a>
-      </p>
+      <p class="switch-link">Don't have an account? <a href="#" id="show-register">Register</a></p>
     </form>
 
     <!-- Register Form -->
-    <form id="register-form" class="auth-form hidden">
+    <form id="register-form" class="auth-form hidden" novalidate>
       <h2>Register</h2>
       <input type="email" id="register-username" placeholder="Email" required />
-      <input type="password" id="register-password" placeholder="Password" required />
-      <input type="password" id="register-confirm" placeholder="Confirm Password" required />
+      
+      <div class="password-wrapper">
+        <input type="password" id="register-password" placeholder="Password" required />
+        <i class="fa-regular fa-eye toggle-password" data-target="register-password"></i>
+      </div>
+
+      <div class="password-wrapper">
+        <input type="password" id="register-confirm" placeholder="Confirm Password" required />
+        <i class="fa-regular fa-eye toggle-password" data-target="register-confirm"></i>
+      </div>
+
       <button type="submit" class="primary-btn ripple">Create Account</button>
-      <p class="switch-link">
-        Already have an account? <a href="#" id="show-login">Login</a>
-      </p>
+      <p class="switch-link">Already have an account? <a href="#" id="show-login">Login</a></p>
     </form>
   </div>
 
-  <!-- ================= BOARD SECTION ================= -->
+  <!-- Board Section (Same as before) -->
   <div id="board-container" class="container hidden">
     <header class="board-header">
       <div class="header-left">
         <h1 class="app-title"><i class="fa-solid fa-list-check"></i> TeamBoard</h1>
         <p id="welcome-message" class="subtitle"></p>
       </div>
-      
       <div class="header-right">
         <div class="profile-section">
           <div class="avatar" id="profile-avatar">M</div>
@@ -60,11 +68,9 @@
             <span class="profile-role">Member</span>
           </div>
         </div>
-        
         <button id="theme-toggle-board" class="icon-btn theme-btn" title="Toggle Theme">
           <i class="fa-solid fa-moon"></i>
         </button>
-
         <button id="logout-btn" class="logout-btn ripple" title="Logout">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
@@ -72,9 +78,7 @@
     </header>
 
     <div class="board-actions">
-      <button id="add-task-btn" class="primary-btn ripple">
-        <i class="fa-solid fa-plus"></i> Add Task
-      </button>
+      <button id="add-task-btn" class="primary-btn ripple"><i class="fa-solid fa-plus"></i> Add Task</button>
     </div>
 
     <div class="board-columns">
@@ -93,19 +97,19 @@
     </div>
   </div>
 
-  <!-- ================= TASK MODAL ================= -->
+  <!-- Modal -->
   <div id="task-modal" class="modal hidden">
     <div class="modal-content">
       <h2 id="modal-title">Add Task</h2>
-      <form id="task-form">
+      <form id="task-form" novalidate>
         <input type="hidden" id="task-id" />
-        <label for="task-title">Task Title</label>
+        <label>Task Title</label>
         <input type="text" id="task-title" placeholder="E.g., Design homepage" required />
-        <label for="task-desc">Description</label>
+        <label>Description</label>
         <textarea id="task-desc" rows="3" placeholder="Add details..."></textarea>
-        <label for="task-assignee">Assignee</label>
+        <label>Assignee</label>
         <select id="task-assignee" required></select>
-        <label for="task-status">Status</label>
+        <label>Status</label>
         <select id="task-status">
           <option value="todo">To Do</option>
           <option value="inprogress">In Progress</option>
@@ -118,6 +122,9 @@
       </form>
     </div>
   </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
 
   <script src="app.js"></script>
 </body>
