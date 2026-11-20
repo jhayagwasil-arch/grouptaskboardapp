@@ -37,27 +37,24 @@ button:active { transform: translateY(0); }
 
 .password-wrapper { position: relative; width: 100%; margin-bottom: 16px; }
 .password-wrapper input { margin-bottom: 0; padding-right: 40px; }
-.toggle-password {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-  cursor: pointer; color: var(--text-muted); font-size: 1.1rem; transition: color 0.2s;
-}
+.toggle-password { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 1.1rem; transition: color 0.2s; }
 .toggle-password:hover { color: var(--text-main); }
 
 /* Board Header & Clickable Profile */
 .board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
 .header-right { display: flex; align-items: center; gap: 16px; }
 
-.profile-section { 
-  display: flex; align-items: center; gap: 12px; background: var(--surface); 
-  padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border); 
-  box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s ease;
-}
-.profile-section:hover {
-  background: var(--border);
-  transform: translateY(-1px);
-}
+.profile-section { display: flex; align-items: center; gap: 12px; background: var(--surface); padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s ease; }
+.profile-section:hover { background: var(--border); transform: translateY(-1px); }
 
-.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; }
+/* Updated Avatar to support images */
+.avatar { 
+  width: 40px; height: 40px; border-radius: 50%; background: var(--primary); 
+  color: white; display: flex; align-items: center; justify-content: center; 
+  font-weight: bold; font-size: 1.1rem; overflow: hidden; flex-shrink: 0;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
 .profile-info { display: flex; flex-direction: column; }
 .profile-name { font-weight: 600; font-size: 0.9rem; }
 .profile-role { font-size: 0.75rem; color: var(--primary); font-weight: 600; }
