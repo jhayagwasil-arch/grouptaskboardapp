@@ -1,5 +1,5 @@
 /* ============================================================
-   TeamBoard – Group Task Board (Avatar Image Update)
+   TeamBoard – Group Task Board (Bulletproof Avatar Upload)
    ============================================================ */
 
 const DB_USERS_KEY = 'teamboard_database_users';
@@ -36,7 +36,7 @@ const editProfileImage = document.getElementById('edit-profile-image');
 const imagePreview = document.getElementById('image-preview');
 const imagePlaceholder = document.getElementById('image-placeholder');
 
-let tempImageBase64 = null; // Holds the image temporarily before saving
+let tempImageBase64 = null; 
 
 // ---------- Toast Notification ----------
 function showToast(message, type = 'success') {
@@ -128,7 +128,7 @@ registerForm.addEventListener('submit', (e) => {
   const confirm = document.getElementById('register-confirm').value;
 
   if (!username || !password || !confirm) return showToast('Please fill out all fields.', 'error');
-  if (password.length < 8) return showToast('Password must be at least 8 characters long.', 'error');
+  if (password.length < 8) return showToast('Password must be at least 8 characters.', 'error');
   if (password !== confirm) return showToast('Passwords do not match.', 'error');
 
   const users = getDatabaseUsers();
@@ -136,12 +136,7 @@ registerForm.addEventListener('submit', (e) => {
     return showToast('Account already exists!', 'error');
   }
 
-  users.push({
-    username: username,
-    password: password,
-    dateJoined: getFormattedTimestamp(),
-    avatarImage: null // Initialize as null
-  });
+  users.push({ username, password, dateJoined: getFormattedTimestamp(), avatarImage: null });
   saveDatabaseUsers(users);
   
   showToast('Account created successfully!', 'success');
@@ -163,11 +158,7 @@ loginForm.addEventListener('submit', (e) => {
   );
 
   const logs = getActivityLogs();
-  logs.push({
-    username: username,
-    status: validUser ? 'SUCCESS' : 'FAILED',
-    timestamp: getFormattedTimestamp()
-  });
+  logs.push({ username, status: validUser ? 'SUCCESS' : 'FAILED', timestamp: getFormattedTimestamp() });
   saveActivityLogs(logs);
 
   if (!validUser) return showToast('Access Denied: Wrong email or password.', 'error');
@@ -209,12 +200,14 @@ editProfileImage.addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
+    
     reader.onload = function(event) {
       const img = new Image();
+      
       img.onload = function() {
-        // Compress image to 100x100 to save space in localStorage
+        // Resize logic to save space
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 100;
+        const MAX_SIZE = 150;
         let width = img.width;
         let height = img.height;
 
@@ -229,14 +222,27 @@ editProfileImage.addEventListener('change', function(e) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        tempImageBase64 = canvas.toDataURL('image/jpeg', 0.8); // Save compressed base64
+        tempImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
         
+        // Update UI
         imagePreview.src = tempImageBase64;
         imagePreview.style.display = 'inline-block';
         imagePlaceholder.style.display = 'none';
+        
+        // Show quick message so you know it worked!
+        showToast('Image loaded! Click Save to apply.', 'success');
+        
+        // Reset input so you can upload the same file again if you want
+        editProfileImage.value = '';
       };
+      
+      img.onerror = function() {
+        showToast('Error loading image file.', 'error');
+      };
+      
       img.src = event.target.result;
     };
+    
     reader.readAsDataURL(file);
   }
 });
@@ -256,22 +262,19 @@ saveProfileBtn.addEventListener('click', () => {
     return showToast('Username already taken.', 'error');
   }
 
-  // 1. Update User Database
   const userIndex = users.findIndex(u => u.username === oldUsername);
   if (userIndex !== -1) {
     users[userIndex].username = newUsername;
-    users[userIndex].avatarImage = tempImageBase64; // Save the image
+    users[userIndex].avatarImage = tempImageBase64; 
     saveDatabaseUsers(users);
   }
 
-  // 2. Update Tasks assigned to this user
   let tasks = getTasks();
   tasks.forEach(task => {
     if (task.assignee === oldUsername) task.assignee = newUsername;
   });
   saveTasks(tasks);
 
-  // 3. Update Session
   localStorage.setItem(CURRENT_USER_KEY, newUsername);
   
   profileModal.classList.add('hidden');
@@ -296,7 +299,6 @@ function showBoard() {
   welcomeMessage.textContent = `Welcome back, ${user}!`;
   profileName.textContent = user;
   
-  // Render Avatar Image or Letter
   const userData = getDatabaseUsers().find(u => u.username === user);
   if (userData && userData.avatarImage) {
     profileAvatar.innerHTML = `<img src="${userData.avatarImage}" alt="Avatar">`;
