@@ -62,9 +62,8 @@
       </div>
       <div class="header-right">
         
-        <!-- Clickable Profile Section -->
         <div class="profile-section" id="profile-trigger" title="Edit Profile">
-          <div class="avatar" id="profile-avatar">M</div>
+          <div class="avatar" id="profile-avatar">D</div>
           <div class="profile-info">
             <span class="profile-name" id="profile-name">User</span>
             <span class="profile-role">Edit Profile</span>
@@ -130,6 +129,18 @@
   <div id="profile-modal" class="modal hidden">
     <div class="modal-content">
       <h2>Edit Profile</h2>
+      
+      <div style="text-align: center; margin-bottom: 16px;">
+        <label for="edit-profile-image" style="cursor: pointer; display: inline-block;">
+          <img id="image-preview" src="" style="display:none; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-bottom: 8px;">
+          <div id="image-placeholder" style="width: 80px; height: 80px; border-radius: 50%; background: var(--border); display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 2rem; border: 2px solid var(--primary); margin-bottom: 8px;">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <p style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">Upload Photo</p>
+        </label>
+        <input type="file" id="edit-profile-image" accept="image/*" style="display: none;">
+      </div>
+
       <label>New Username / Email</label>
       <input type="text" id="edit-profile-input" placeholder="Enter new username" />
       
