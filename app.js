@@ -1,14 +1,10 @@
 /* ============================================================
-   TeamBoard – Group Task Board (Dual Database Version)
+   TeamBoard – Group Task Board (Local Database Version)
    ============================================================ */
 
-// --- GITHUB DATABASE CONFIGURATION ---
-// PASTE A BRAND NEW TOKEN HERE FOR YOUR LOCALHOST TEST
-const GITHUB_TOKEN = 'github_pat_YOUR_NEW_TOKEN_HERE'; // Paste it here!
-const GITHUB_TOKEN = 'ghp_YOUR_TOKEN_HERE'; 
-const GITHUB_USERNAME = 'jhayagwasil-arch';
-const GITHUB_REPO = 'grouptaskboardapp';
-
+// --- DATABASE CONFIGURATION ---
+const DB_USERS_KEY = 'teamboard_database_users';
+const DB_ACTIVITY_KEY = 'teamboard_database_activity';
 const TASKS_KEY = 'teamboard_tasks';
 const CURRENT_USER_KEY = 'teamboard_current_user';
 const THEME_KEY = 'teamboard_theme';
@@ -30,51 +26,31 @@ const profileName = document.getElementById('profile-name');
 const profileAvatar = document.getElementById('profile-avatar');
 const themeToggles = document.querySelectorAll('.theme-btn');
 
-// ---------- GitHub API Helpers ----------
-function encodeBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
-function decodeBase64(str) { return decodeURIComponent(escape(atob(str))); }
-
+// ---------- Local Database Helpers ----------
 function getFormattedTimestamp() {
   const now = new Date();
   const pad = (num) => String(num).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
-async function fetchFileFromGitHub(filename) {
-  const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filename}`;
-  try {
-    const response = await fetch(url, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    });
-    if (!response.ok) throw new Error(`Failed to fetch ${filename}`);
-    const data = await response.json();
-    return { content: data.content ? decodeBase64(data.content) : "", sha: data.sha };
-  } catch (error) {
-    console.error("DB Error:", error);
-    return null;
-  }
+// Get all users from the local database
+function getDatabaseUsers() {
+  return JSON.parse(localStorage.getItem(DB_USERS_KEY) || '[]');
 }
 
-async function writeFileToGitHub(filename, newContent, sha, commitMessage) {
-  const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filename}`;
-  try {
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: commitMessage,
-        content: encodeBase64(newContent),
-        sha: sha
-      })
-    });
-    return response.ok;
-  } catch (error) {
-    console.error("Write Error:", error);
-    return false;
-  }
+// Save users to the local database
+function saveDatabaseUsers(users) {
+  localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
+}
+
+// Get activity logs
+function getActivityLogs() {
+  return JSON.parse(localStorage.getItem(DB_ACTIVITY_KEY) || '[]');
+}
+
+// Save activity logs
+function saveActivityLogs(logs) {
+  localStorage.setItem(DB_ACTIVITY_KEY, JSON.stringify(logs));
 }
 
 // ---------- Theme Logic ----------
@@ -120,7 +96,8 @@ showLogin.addEventListener('click', (e) => {
   loginForm.classList.remove('hidden');
 });
 
-registerForm.addEventListener('submit', async (e) => {
+// REGISTER
+registerForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('register-username').value.trim();
   const password = document.getElementById('register-password').value;
@@ -128,94 +105,54 @@ registerForm.addEventListener('submit', async (e) => {
 
   if (password !== confirm) return alert('Passwords do not match.');
 
-  const submitBtn = registerForm.querySelector('button');
-  submitBtn.textContent = 'Saving...';
-  submitBtn.disabled = true;
-
-  const fileData = await fetchFileFromGitHub('accounts.txt');
-  if (!fileData) {
-    alert('Cannot connect. Check your token.');
-    submitBtn.textContent = 'Create Account';
-    submitBtn.disabled = false;
-    return;
-  }
-
-  const lines = fileData.content.split('\n').filter(line => line.trim() !== '');
-  const userExists = lines.some(line => {
-    const [u] = line.split('|');
-    return u && u.toLowerCase() === username.toLowerCase();
-  });
+  const users = getDatabaseUsers();
+  const userExists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
 
   if (userExists) {
-    alert('Account already exists!');
-    submitBtn.textContent = 'Create Account';
-    submitBtn.disabled = false;
-    return;
+    return alert('Account already exists in the database!');
   }
 
-  const newEntry = `${username}|${password}|${getFormattedTimestamp()}\n`;
-  const newContent = fileData.content + (fileData.content.endsWith('\n') || fileData.content === '' ? '' : '\n') + newEntry;
+  // Save new user to the database
+  users.push({
+    username: username,
+    password: password,
+    dateJoined: getFormattedTimestamp()
+  });
+  saveDatabaseUsers(users);
   
-  const success = await writeFileToGitHub('accounts.txt', newContent, fileData.sha, `New account: ${username}`);
-
-  if (success) {
-    alert('Account saved to accounts.txt! Please log in.');
-    registerForm.reset();
-    showLogin.click();
-  } else {
-    alert('Failed to save to GitHub.');
-  }
-  
-  submitBtn.textContent = 'Create Account';
-  submitBtn.disabled = false;
+  alert('Account successfully saved to the database! Please log in.');
+  registerForm.reset();
+  showLogin.click();
 });
 
-loginForm.addEventListener('submit', async (e) => {
+// LOGIN
+loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
 
-  const submitBtn = loginForm.querySelector('button');
-  submitBtn.textContent = 'Checking...';
-  submitBtn.disabled = true;
+  const users = getDatabaseUsers();
+  
+  // Check if user exists and password matches
+  const validUser = users.find(u => 
+    u.username.toLowerCase() === username.toLowerCase() && u.password === password
+  );
 
-  // 1. Check Accounts
-  const fileData = await fetchFileFromGitHub('accounts.txt');
-  if (!fileData) {
-    alert('Cannot connect to database.');
-    submitBtn.textContent = 'Login';
-    submitBtn.disabled = false;
-    return;
-  }
-
-  const lines = fileData.content.split('\n').filter(line => line.trim() !== '');
-  const validUser = lines.find(line => {
-    const parts = line.split('|');
-    if (parts.length >= 2) return parts[0].toLowerCase() === username.toLowerCase() && parts[1] === password;
-    return false;
+  // Log the activity
+  const logs = getActivityLogs();
+  logs.push({
+    username: username,
+    status: validUser ? 'SUCCESS' : 'FAILED',
+    timestamp: getFormattedTimestamp()
   });
+  saveActivityLogs(logs);
 
-  // 2. Log the activity
-  const actData = await fetchFileFromGitHub('activity.txt');
-  if (actData) {
-    const status = validUser ? 'SUCCESS' : 'FAILED';
-    const logEntry = `${username}|${status}|${getFormattedTimestamp()}\n`;
-    const newActContent = actData.content + (actData.content.endsWith('\n') || actData.content === '' ? '' : '\n') + logEntry;
-    await writeFileToGitHub('activity.txt', newActContent, actData.sha, `Login: ${username} (${status})`);
-  }
-
-  // 3. Handle Result
   if (!validUser) {
-    alert('Access Denied: Wrong account or password.');
-    submitBtn.textContent = 'Login';
-    submitBtn.disabled = false;
-    return;
+    return alert('Access Denied: Account not found in database or wrong password.');
   }
 
   localStorage.setItem(CURRENT_USER_KEY, username);
   loginForm.reset();
-  submitBtn.textContent = 'Login';
-  submitBtn.disabled = false;
   showBoard();
 });
 
@@ -297,15 +234,9 @@ function openTaskModal(task = null) {
   const taskAssignee = document.getElementById('task-assignee');
   const taskStatus = document.getElementById('task-status');
 
-  fetchFileFromGitHub('accounts.txt').then(fileData => {
-    if (fileData) {
-      const lines = fileData.content.split('\n').filter(line => line.trim() !== '');
-      taskAssignee.innerHTML = lines.map(line => {
-        const [u] = line.split('|');
-        return u ? `<option value="${escapeHTML(u)}">${escapeHTML(u)}</option>` : '';
-      }).join('');
-    }
-  });
+  // Populate assignee dropdown from the Database
+  const users = getDatabaseUsers();
+  taskAssignee.innerHTML = users.map(u => `<option value="${escapeHTML(u.username)}">${escapeHTML(u.username)}</option>`).join('');
 
   if (task) {
     modalTitle.textContent = 'Edit Task';
