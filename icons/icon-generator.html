@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TeamBoard Icon Generator</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; background: #0f172a; color: #e2e8f0; }
+    h1 { color: #60a5fa; }
+    button { display: block; width: 100%; padding: 14px; margin: 10px 0; font-size: 16px; font-weight: bold; background: #2563eb; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    code { background: #1e293b; padding: 2px 6px; border-radius: 4px; }
+    .preview { display: flex; gap: 24px; align-items: center; margin: 24px 0; }
+    .preview div { background: #1e293b; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; }
+    .preview img { display: block; width: 96px; height: 96px; border-radius: 8px; }
+    .maskable img { border-radius: 50%; width: 80px; height: 80px; }
+  </style>
+</head>
+<body>
+  <h1>TeamBoard Icon Generator</h1>
+  <p>Click each button to download the PNG. Place the three files in an <code>icons/</code> folder next to <code>index.html</code>.</p>
+
+  <div class="preview">
+    <div>192<br><img id="prev192"></div>
+    <div>512<br><img id="prev512"></div>
+    <div class="maskable">maskable<br><img id="prevmask"></div>
+  </div>
+
+  <button onclick="download(192, false, 'icon-192.png')">⬇ Download icon-192.png</button>
+  <button onclick="download(512, false, 'icon-512.png')">⬇ Download icon-512.png</button>
+  <button onclick="download(512, true,  'icon-maskable-512.png')">⬇ Download icon-maskable-512.png (padded for Android)</button>
+
+  <script>
+    function drawIcon(size, maskable) {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+
+      // Background (rounded for "any", full-bleed for maskable)
+      ctx.fillStyle = '#2563eb';
+      if (!maskable && ctx.roundRect) {
+        const r = size * 0.22;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, r);
+        ctx.fill();
+      } else {
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      // Subtle gradient overlay
+      const g = ctx.createLinearGradient(0, 0, size, size);
+      g.addColorStop(0, 'rgba(255,255,255,0.14)');
+      g.addColorStop(1, 'rgba(0,0,0,0.10)');
+      ctx.fillStyle = g;
+      if (!maskable && ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, size * 0.22);
+        ctx.fill();
+      } else {
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      // Checklist glyph — kept inside the maskable safe zone (center 80%)
+      const inner = size * 0.55;
+      const left  = (size - inner) / 2;
+      const top   = (size - inner) / 2;
+      const rowH  = inner / 3;
+      const chk   = rowH * 0.55;
+      const lineStart = left + chk + rowH * 0.4;
+      const lineEnd   = left + inner;
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(3, size * 0.022);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (let i = 0; i < 3; i++) {
+        const cy = top + rowH * (i + 0.5);
+
+        // checkmark
+        const cx = left + chk * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(cx - chk * 0.45, cy);
+        ctx.lineTo(cx,              cy + chk * 0.35);
+        ctx.lineTo(cx + chk * 0.55, cy - chk * 0.4);
+        ctx.stroke();
+
+        // line
+        ctx.beginPath();
+        ctx.moveTo(lineStart, cy);
+        ctx.lineTo(lineEnd,   cy);
+        ctx.stroke();
+      }
+
+      return c;
+    }
+
+    function download(size, maskable, filename) {
+      const c = drawIcon(size, maskable);
+      c.toBlob((blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }, 'image/png');
+    }
+
+    // Render previews on load
+    document.getElementById('prev192').src  = drawIcon(192, false).toDataURL();
+    document.getElementById('prev512').src  = drawIcon(512, false).toDataURL();
+    document.getElementById('prevmask').src = drawIcon(512, true).toDataURL();
+  </script>
+</body>
+</html>
