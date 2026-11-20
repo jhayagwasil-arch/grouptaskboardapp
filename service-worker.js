@@ -1,6 +1,6 @@
 /* TeamBoard Service Worker
    Bump CACHE_NAME whenever you change index.html, style.css, or app.js. */
-const CACHE_NAME = 'teamboard-v1';
+const CACHE_NAME = 'teamboard-v2';
 const APP_SHELL = [
   './',
   './index.html',
