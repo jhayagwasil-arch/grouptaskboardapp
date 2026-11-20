@@ -4,6 +4,11 @@ A mobile-friendly, installable **Progressive Web App (PWA)** for managing a shar
 
 This project was developed to demonstrate modern web app capabilities, including user authentication, drag-and-drop-style Kanban task management, and offline installation as a mobile app.
 
+**Author:** Mark Jay U. Agwasil
+**Section:** BSINTE 2C
+**Course / Subject:** PLATFORM TECHNOLOGIES
+**Date:** November 2026
+
 ## 🌟 Features
 
 - **User Authentication**
