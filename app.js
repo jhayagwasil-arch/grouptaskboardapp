@@ -1,13 +1,10 @@
 /* ============================================================
-   TeamBoard – Cross-Device Sync Version (Pantry Cloud)
+   TeamBoard – Group Task Board (Bulletproof Avatar Upload)
    ============================================================ */
 
-// --- DATABASE CONFIGURATION ---
-// Your Pantry ID is now set!
-const PANTRY_ID = '02ef6e74-8261-492a-aa42-e4a2a8d523dd'; 
-const BASKET_NAME = 'teamboard_db';
-const PANTRY_URL = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/${BASKET_NAME}`;
-
+const DB_USERS_KEY = 'teamboard_database_users';
+const DB_ACTIVITY_KEY = 'teamboard_database_activity';
+const TASKS_KEY = 'teamboard_tasks';
 const CURRENT_USER_KEY = 'teamboard_current_user';
 const THEME_KEY = 'teamboard_theme';
 
@@ -41,45 +38,6 @@ const imagePlaceholder = document.getElementById('image-placeholder');
 
 let tempImageBase64 = null; 
 
-// ---------- Database Helpers ----------
-async function getDB() {
-  try {
-    const res = await fetch(PANTRY_URL);
-    if (res.status === 404) {
-      // If database doesn't exist yet, create it
-      const emptyDb = { users: [], activity: [], tasks: [] };
-      await saveDB(emptyDb);
-      return emptyDb;
-    }
-    if (!res.ok) throw new Error('Fetch failed');
-    return await res.json();
-  } catch (error) {
-    console.error(error);
-    showToast('Cannot connect to database. Check internet.', 'error');
-    return null;
-  }
-}
-
-async function saveDB(data) {
-  try {
-    const res = await fetch(PANTRY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return res.ok;
-  } catch (error) {
-    console.error(error);
-    return false;
-  }
-}
-
-function getFormattedTimestamp() {
-  const now = new Date();
-  const pad = (num) => String(num).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
-
 // ---------- Toast Notification ----------
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
@@ -107,6 +65,18 @@ document.querySelectorAll('.toggle-password').forEach(icon => {
     }
   });
 });
+
+// ---------- Database Helpers ----------
+function getFormattedTimestamp() {
+  const now = new Date();
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+function getDatabaseUsers() { return JSON.parse(localStorage.getItem(DB_USERS_KEY) || '[]'); }
+function saveDatabaseUsers(users) { localStorage.setItem(DB_USERS_KEY, JSON.stringify(users)); }
+function getActivityLogs() { return JSON.parse(localStorage.getItem(DB_ACTIVITY_KEY) || '[]'); }
+function saveActivityLogs(logs) { localStorage.setItem(DB_ACTIVITY_KEY, JSON.stringify(logs)); }
 
 // ---------- Theme Logic ----------
 function initTheme() {
@@ -151,7 +121,7 @@ showLogin.addEventListener('click', (e) => {
 });
 
 // REGISTER
-registerForm.addEventListener('submit', async (e) => {
+registerForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('register-username').value.trim();
   const password = document.getElementById('register-password').value;
@@ -161,55 +131,37 @@ registerForm.addEventListener('submit', async (e) => {
   if (password.length < 8) return showToast('Password must be at least 8 characters.', 'error');
   if (password !== confirm) return showToast('Passwords do not match.', 'error');
 
-  const submitBtn = registerForm.querySelector('button');
-  submitBtn.textContent = 'Saving...'; submitBtn.disabled = true;
-
-  const db = await getDB();
-  if (!db) { submitBtn.textContent = 'Create Account'; submitBtn.disabled = false; return; }
-
-  if (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-    showToast('Account already exists!', 'error');
-    submitBtn.textContent = 'Create Account'; submitBtn.disabled = false; return;
+  const users = getDatabaseUsers();
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    return showToast('Account already exists!', 'error');
   }
 
-  db.users.push({ username, password, dateJoined: getFormattedTimestamp(), avatarImage: null });
-  const success = await saveDB(db);
+  users.push({ username, password, dateJoined: getFormattedTimestamp(), avatarImage: null });
+  saveDatabaseUsers(users);
   
-  if (success) {
-    showToast('Account created successfully!', 'success');
-    registerForm.reset();
-    setTimeout(() => { showLogin.click(); }, 1000);
-  } else {
-    showToast('Failed to save to database.', 'error');
-  }
-  submitBtn.textContent = 'Create Account'; submitBtn.disabled = false;
+  showToast('Account created successfully!', 'success');
+  registerForm.reset();
+  setTimeout(() => { showLogin.click(); }, 1000);
 });
 
 // LOGIN
-loginForm.addEventListener('submit', async (e) => {
+loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
 
   if (!username || !password) return showToast('Please enter email and password.', 'error');
 
-  const submitBtn = loginForm.querySelector('button');
-  submitBtn.textContent = 'Checking...'; submitBtn.disabled = true;
-
-  const db = await getDB();
-  if (!db) { submitBtn.textContent = 'Login'; submitBtn.disabled = false; return; }
-
-  const validUser = db.users.find(u => 
+  const users = getDatabaseUsers();
+  const validUser = users.find(u => 
     u.username.toLowerCase() === username.toLowerCase() && u.password === password
   );
 
-  db.activity.push({ username, status: validUser ? 'SUCCESS' : 'FAILED', timestamp: getFormattedTimestamp() });
-  await saveDB(db);
+  const logs = getActivityLogs();
+  logs.push({ username, status: validUser ? 'SUCCESS' : 'FAILED', timestamp: getFormattedTimestamp() });
+  saveActivityLogs(logs);
 
-  if (!validUser) {
-    showToast('Access Denied: Wrong email or password.', 'error');
-    submitBtn.textContent = 'Login'; submitBtn.disabled = false; return;
-  }
+  if (!validUser) return showToast('Access Denied: Wrong email or password.', 'error');
 
   localStorage.setItem(CURRENT_USER_KEY, username);
   loginForm.reset();
@@ -224,14 +176,12 @@ logoutBtn.addEventListener('click', () => {
 });
 
 // ---------- Profile Logic ----------
-profileTrigger.addEventListener('click', async () => {
+profileTrigger.addEventListener('click', () => {
   const currentUser = localStorage.getItem(CURRENT_USER_KEY);
-  const db = await getDB();
-  if (!db) return;
+  const user = getDatabaseUsers().find(u => u.username === currentUser);
   
-  const user = db.users.find(u => u.username === currentUser);
   editProfileInput.value = currentUser;
-  tempImageBase64 = user.avatarImage || null; 
+  tempImageBase64 = user.avatarImage || null; // Load current image
   
   if (tempImageBase64) {
     imagePreview.src = tempImageBase64;
@@ -241,6 +191,7 @@ profileTrigger.addEventListener('click', async () => {
     imagePreview.style.display = 'none';
     imagePlaceholder.style.display = 'inline-flex';
   }
+  
   profileModal.classList.remove('hidden');
 });
 
@@ -249,9 +200,12 @@ editProfileImage.addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
+    
     reader.onload = function(event) {
       const img = new Image();
+      
       img.onload = function() {
+        // Resize logic to save space
         const canvas = document.createElement('canvas');
         const MAX_SIZE = 150;
         let width = img.width;
@@ -270,15 +224,25 @@ editProfileImage.addEventListener('change', function(e) {
         
         tempImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
         
+        // Update UI
         imagePreview.src = tempImageBase64;
         imagePreview.style.display = 'inline-block';
         imagePlaceholder.style.display = 'none';
         
-        showToast('Image loaded! Click Save.', 'success');
+        // Show quick message so you know it worked!
+        showToast('Image loaded! Click Save to apply.', 'success');
+        
+        // Reset input so you can upload the same file again if you want
         editProfileImage.value = '';
       };
+      
+      img.onerror = function() {
+        showToast('Error loading image file.', 'error');
+      };
+      
       img.src = event.target.result;
     };
+    
     reader.readAsDataURL(file);
   }
 });
@@ -287,48 +251,42 @@ cancelProfileBtn.addEventListener('click', () => {
   profileModal.classList.add('hidden');
 });
 
-saveProfileBtn.addEventListener('click', async () => {
+saveProfileBtn.addEventListener('click', () => {
   const oldUsername = localStorage.getItem(CURRENT_USER_KEY);
   const newUsername = editProfileInput.value.trim();
 
   if (!newUsername) return showToast('Username cannot be empty.', 'error');
   
-  const submitBtn = saveProfileBtn;
-  submitBtn.textContent = 'Saving...'; submitBtn.disabled = true;
-
-  const db = await getDB();
-  if (!db) { submitBtn.textContent = 'Save Changes'; submitBtn.disabled = false; return; }
-
-  if (newUsername !== oldUsername && db.users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
-    showToast('Username already taken.', 'error');
-    submitBtn.textContent = 'Save Changes'; submitBtn.disabled = false; return;
+  let users = getDatabaseUsers();
+  if (newUsername !== oldUsername && users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
+    return showToast('Username already taken.', 'error');
   }
 
-  const userIndex = db.users.findIndex(u => u.username === oldUsername);
+  const userIndex = users.findIndex(u => u.username === oldUsername);
   if (userIndex !== -1) {
-    db.users[userIndex].username = newUsername;
-    db.users[userIndex].avatarImage = tempImageBase64; 
+    users[userIndex].username = newUsername;
+    users[userIndex].avatarImage = tempImageBase64; 
+    saveDatabaseUsers(users);
   }
 
-  db.tasks.forEach(task => {
+  let tasks = getTasks();
+  tasks.forEach(task => {
     if (task.assignee === oldUsername) task.assignee = newUsername;
   });
+  saveTasks(tasks);
 
-  const success = await saveDB(db);
-
-  if (success) {
-    localStorage.setItem(CURRENT_USER_KEY, newUsername);
-    profileModal.classList.add('hidden');
-    showToast('Profile updated successfully!', 'success');
-    await showBoard();
-  } else {
-    showToast('Failed to save profile.', 'error');
-  }
-  submitBtn.textContent = 'Save Changes'; submitBtn.disabled = false;
+  localStorage.setItem(CURRENT_USER_KEY, newUsername);
+  
+  profileModal.classList.add('hidden');
+  showToast('Profile updated successfully!', 'success');
+  showBoard();
 });
 
 // ---------- Board & Tasks Logic ----------
-async function showBoard() {
+function getTasks() { return JSON.parse(localStorage.getItem(TASKS_KEY) || '[]'); }
+function saveTasks(tasks) { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
+
+function showBoard() {
   const user = localStorage.getItem(CURRENT_USER_KEY);
   if (!user) {
     authContainer.classList.remove('hidden');
@@ -336,25 +294,23 @@ async function showBoard() {
     return;
   }
 
-  const db = await getDB();
-  if (!db) return;
-
   authContainer.classList.add('hidden');
   boardContainer.classList.remove('hidden');
   welcomeMessage.textContent = `Welcome back, ${user}!`;
   profileName.textContent = user;
   
-  const userData = db.users.find(u => u.username === user);
+  const userData = getDatabaseUsers().find(u => u.username === user);
   if (userData && userData.avatarImage) {
     profileAvatar.innerHTML = `<img src="${userData.avatarImage}" alt="Avatar">`;
   } else {
     profileAvatar.innerHTML = user.charAt(0).toUpperCase();
   }
 
-  renderBoard(db.tasks || []);
+  renderBoard();
 }
 
-function renderBoard(tasks) {
+function renderBoard() {
+  const tasks = getTasks();
   const lists = {
     todo: document.getElementById('todo-list'),
     inprogress: document.getElementById('inprogress-list'),
@@ -382,26 +338,12 @@ function renderBoard(tasks) {
       </div>
     `;
 
-    card.querySelector('.status-select').addEventListener('change', async (e) => {
-      const db = await getDB();
-      if(db) {
-        const t = db.tasks.find(x => x.id === task.id);
-        if(t) { t.status = e.target.value; await saveDB(db); await showBoard(); }
-      }
+    card.querySelector('.status-select').addEventListener('change', (e) => {
+      updateTask(task.id, { status: e.target.value });
     });
-    
     card.querySelector('.edit-btn').addEventListener('click', () => openTaskModal(task));
-    
-    card.querySelector('.delete-btn').addEventListener('click', async () => {
-      if (confirm(`Delete "${task.title}"?`)) {
-        const db = await getDB();
-        if(db) {
-          db.tasks = db.tasks.filter(t => t.id !== task.id);
-          await saveDB(db);
-          showToast('Task deleted.', 'success');
-          await showBoard();
-        }
-      }
+    card.querySelector('.delete-btn').addEventListener('click', () => {
+      if (confirm(`Delete "${task.title}"?`)) deleteTask(task.id);
     });
 
     (lists[task.status] || lists.todo).appendChild(card);
@@ -411,7 +353,7 @@ function renderBoard(tasks) {
 addTaskBtn.addEventListener('click', () => openTaskModal());
 cancelModal.addEventListener('click', () => taskModal.classList.add('hidden'));
 
-async function openTaskModal(task = null) {
+function openTaskModal(task = null) {
   const modalTitle = document.getElementById('modal-title');
   const taskId = document.getElementById('task-id');
   const taskTitle = document.getElementById('task-title');
@@ -419,10 +361,8 @@ async function openTaskModal(task = null) {
   const taskAssignee = document.getElementById('task-assignee');
   const taskStatus = document.getElementById('task-status');
 
-  const db = await getDB();
-  if (!db) return;
-
-  taskAssignee.innerHTML = db.users.map(u => `<option value="${escapeHTML(u.username)}">${escapeHTML(u.username)}</option>`).join('');
+  const users = getDatabaseUsers();
+  taskAssignee.innerHTML = users.map(u => `<option value="${escapeHTML(u.username)}">${escapeHTML(u.username)}</option>`).join('');
 
   if (task) {
     modalTitle.textContent = 'Edit Task';
@@ -441,7 +381,7 @@ async function openTaskModal(task = null) {
   taskModal.classList.remove('hidden');
 }
 
-taskForm.addEventListener('submit', async (e) => {
+taskForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const id = document.getElementById('task-id').value;
   const title = document.getElementById('task-title').value.trim();
@@ -451,25 +391,38 @@ taskForm.addEventListener('submit', async (e) => {
 
   if (!title) return showToast('Task title is required.', 'error');
 
-  const db = await getDB();
-  if (!db) return;
-
   if (id) {
-    const index = db.tasks.findIndex((t) => t.id === id);
-    if (index !== -1) db.tasks[index] = { ...db.tasks[index], title, description, assignee, status };
+    updateTask(id, { title, description, assignee, status });
   } else {
-    db.tasks.push({
+    const tasks = getTasks();
+    tasks.push({
       id: Date.now().toString(),
       title, description, assignee, status,
       createdAt: new Date().toISOString(),
     });
+    saveTasks(tasks);
     showToast('Task added successfully!', 'success');
   }
 
-  await saveDB(db);
   taskModal.classList.add('hidden');
-  await showBoard();
+  renderBoard();
 });
+
+function updateTask(id, updates) {
+  const tasks = getTasks();
+  const index = tasks.findIndex((t) => t.id === id);
+  if (index === -1) return;
+  tasks[index] = { ...tasks[index], ...updates };
+  saveTasks(tasks);
+  renderBoard();
+}
+
+function deleteTask(id) {
+  const tasks = getTasks().filter((t) => t.id !== id);
+  saveTasks(tasks);
+  renderBoard();
+  showToast('Task deleted.', 'success');
+}
 
 function escapeHTML(str) {
   const div = document.createElement('div');
@@ -478,8 +431,5 @@ function escapeHTML(str) {
 }
 
 // ---------- Init ----------
-async function init() {
-  initTheme();
-  if (localStorage.getItem(CURRENT_USER_KEY)) await showBoard();
-}
-init();
+initTheme();
+if (localStorage.getItem(CURRENT_USER_KEY)) showBoard();
