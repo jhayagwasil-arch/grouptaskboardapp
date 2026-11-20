@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamBoard – Group Task Board</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ================= AUTH SECTION ================= -->
+  <div id="auth-container" class="container">
+    <div class="auth-header">
+      <h1 class="app-title"><i class="fa-solid fa-list-check"></i> TeamBoard</h1>
+      <button id="theme-toggle-auth" class="icon-btn theme-btn" title="Toggle Theme">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+    <p class="subtitle">Group Task Board</p>
+
+    <!-- Login Form -->
+    <form id="login-form" class="auth-form">
+      <h2>Login</h2>
+      <input type="text" id="login-username" placeholder="Email" required />
+      <input type="password" id="login-password" placeholder="Password" required />
+      <button type="submit" class="primary-btn ripple">Login</button>
+      <p class="switch-link">
+        Don't have an account? <a href="#" id="show-register">Register</a>
+      </p>
+    </form>
+
+    <!-- Register Form -->
+    <form id="register-form" class="auth-form hidden">
+      <h2>Register</h2>
+      <input type="email" id="register-username" placeholder="Email" required />
+      <input type="password" id="register-password" placeholder="Password" required />
+      <input type="password" id="register-confirm" placeholder="Confirm Password" required />
+      <button type="submit" class="primary-btn ripple">Create Account</button>
+      <p class="switch-link">
+        Already have an account? <a href="#" id="show-login">Login</a>
+      </p>
+    </form>
+  </div>
+
+  <!-- ================= BOARD SECTION ================= -->
+  <div id="board-container" class="container hidden">
+    <header class="board-header">
+      <div class="header-left">
+        <h1 class="app-title"><i class="fa-solid fa-list-check"></i> TeamBoard</h1>
+        <p id="welcome-message" class="subtitle"></p>
+      </div>
+      
+      <div class="header-right">
+        <div class="profile-section">
+          <div class="avatar" id="profile-avatar">M</div>
+          <div class="profile-info">
+            <span class="profile-name" id="profile-name">User</span>
+            <span class="profile-role">Member</span>
+          </div>
+        </div>
+        
+        <button id="theme-toggle-board" class="icon-btn theme-btn" title="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+
+        <button id="logout-btn" class="logout-btn ripple" title="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="board-actions">
+      <button id="add-task-btn" class="primary-btn ripple">
+        <i class="fa-solid fa-plus"></i> Add Task
+      </button>
+    </div>
+
+    <div class="board-columns">
+      <section class="column" data-status="todo">
+        <h2 class="column-title"><span class="dot dot-todo"></span> To Do</h2>
+        <div class="task-list" id="todo-list"></div>
+      </section>
+      <section class="column" data-status="inprogress">
+        <h2 class="column-title"><span class="dot dot-progress"></span> In Progress</h2>
+        <div class="task-list" id="inprogress-list"></div>
+      </section>
+      <section class="column" data-status="done">
+        <h2 class="column-title"><span class="dot dot-done"></span> Done</h2>
+        <div class="task-list" id="done-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ================= TASK MODAL ================= -->
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="modal-title">Add Task</h2>
+      <form id="task-form">
+        <input type="hidden" id="task-id" />
+        <label for="task-title">Task Title</label>
+        <input type="text" id="task-title" placeholder="E.g., Design homepage" required />
+        <label for="task-desc">Description</label>
+        <textarea id="task-desc" rows="3" placeholder="Add details..."></textarea>
+        <label for="task-assignee">Assignee</label>
+        <select id="task-assignee" required></select>
+        <label for="task-status">Status</label>
+        <select id="task-status">
+          <option value="todo">To Do</option>
+          <option value="inprogress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        <div class="modal-actions">
+          <button type="submit" class="primary-btn ripple">Save Task</button>
+          <button type="button" id="cancel-modal" class="secondary-btn ripple">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
