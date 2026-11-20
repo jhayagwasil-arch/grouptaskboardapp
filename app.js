@@ -36,7 +36,7 @@ const editProfileImage = document.getElementById('edit-profile-image');
 const imagePreview = document.getElementById('image-preview');
 const imagePlaceholder = document.getElementById('image-placeholder');
 
-let tempImageBase64 = null; 
+let tempImageBase64 = null;
 
 // ---------- Toast Notification ----------
 function showToast(message, type = 'success') {
@@ -138,7 +138,7 @@ registerForm.addEventListener('submit', (e) => {
 
   users.push({ username, password, dateJoined: getFormattedTimestamp(), avatarImage: null });
   saveDatabaseUsers(users);
-  
+
   showToast('Account created successfully!', 'success');
   registerForm.reset();
   setTimeout(() => { showLogin.click(); }, 1000);
@@ -153,7 +153,7 @@ loginForm.addEventListener('submit', (e) => {
   if (!username || !password) return showToast('Please enter email and password.', 'error');
 
   const users = getDatabaseUsers();
-  const validUser = users.find(u => 
+  const validUser = users.find(u =>
     u.username.toLowerCase() === username.toLowerCase() && u.password === password
   );
 
@@ -179,10 +179,10 @@ logoutBtn.addEventListener('click', () => {
 profileTrigger.addEventListener('click', () => {
   const currentUser = localStorage.getItem(CURRENT_USER_KEY);
   const user = getDatabaseUsers().find(u => u.username === currentUser);
-  
+
   editProfileInput.value = currentUser;
-  tempImageBase64 = user.avatarImage || null; // Load current image
-  
+  tempImageBase64 = user.avatarImage || null;
+
   if (tempImageBase64) {
     imagePreview.src = tempImageBase64;
     imagePreview.style.display = 'inline-block';
@@ -191,21 +191,19 @@ profileTrigger.addEventListener('click', () => {
     imagePreview.style.display = 'none';
     imagePlaceholder.style.display = 'inline-flex';
   }
-  
+
   profileModal.classList.remove('hidden');
 });
 
-// Handle Image Upload & Resize
 editProfileImage.addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
-    
+
     reader.onload = function(event) {
       const img = new Image();
-      
+
       img.onload = function() {
-        // Resize logic to save space
         const canvas = document.createElement('canvas');
         const MAX_SIZE = 150;
         let width = img.width;
@@ -216,33 +214,29 @@ editProfileImage.addEventListener('change', function(e) {
         } else {
           if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         tempImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-        
-        // Update UI
+
         imagePreview.src = tempImageBase64;
         imagePreview.style.display = 'inline-block';
         imagePlaceholder.style.display = 'none';
-        
-        // Show quick message so you know it worked!
+
         showToast('Image loaded! Click Save to apply.', 'success');
-        
-        // Reset input so you can upload the same file again if you want
         editProfileImage.value = '';
       };
-      
+
       img.onerror = function() {
         showToast('Error loading image file.', 'error');
       };
-      
+
       img.src = event.target.result;
     };
-    
+
     reader.readAsDataURL(file);
   }
 });
@@ -256,7 +250,7 @@ saveProfileBtn.addEventListener('click', () => {
   const newUsername = editProfileInput.value.trim();
 
   if (!newUsername) return showToast('Username cannot be empty.', 'error');
-  
+
   let users = getDatabaseUsers();
   if (newUsername !== oldUsername && users.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
     return showToast('Username already taken.', 'error');
@@ -265,7 +259,7 @@ saveProfileBtn.addEventListener('click', () => {
   const userIndex = users.findIndex(u => u.username === oldUsername);
   if (userIndex !== -1) {
     users[userIndex].username = newUsername;
-    users[userIndex].avatarImage = tempImageBase64; 
+    users[userIndex].avatarImage = tempImageBase64;
     saveDatabaseUsers(users);
   }
 
@@ -276,7 +270,7 @@ saveProfileBtn.addEventListener('click', () => {
   saveTasks(tasks);
 
   localStorage.setItem(CURRENT_USER_KEY, newUsername);
-  
+
   profileModal.classList.add('hidden');
   showToast('Profile updated successfully!', 'success');
   showBoard();
@@ -298,7 +292,7 @@ function showBoard() {
   boardContainer.classList.remove('hidden');
   welcomeMessage.textContent = `Welcome back, ${user}!`;
   profileName.textContent = user;
-  
+
   const userData = getDatabaseUsers().find(u => u.username === user);
   if (userData && userData.avatarImage) {
     profileAvatar.innerHTML = `<img src="${userData.avatarImage}" alt="Avatar">`;
@@ -322,7 +316,7 @@ function renderBoard() {
   tasks.forEach((task) => {
     const card = document.createElement('div');
     card.className = 'task-card';
-    
+
     card.innerHTML = `
       <h4>${escapeHTML(task.title)}</h4>
       <p>${escapeHTML(task.description || '')}</p>
@@ -375,7 +369,7 @@ function openTaskModal(task = null) {
     modalTitle.textContent = 'Add Task';
     taskId.value = '';
     taskForm.reset();
-    taskAssignee.value = localStorage.getItem(CURRENT_USER_KEY); 
+    taskAssignee.value = localStorage.getItem(CURRENT_USER_KEY);
   }
 
   taskModal.classList.remove('hidden');
@@ -433,3 +427,12 @@ function escapeHTML(str) {
 // ---------- Init ----------
 initTheme();
 if (localStorage.getItem(CURRENT_USER_KEY)) showBoard();
+
+// ---------- Service Worker Registration (PWA) ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
